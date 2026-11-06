@@ -1,0 +1,40 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 4,
+    "patch": 5
+  },
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "aGE Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "AGE_BUILD_GAME": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "aGE Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "AGE_BUILD_GAME": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    }
+  ]
+}
