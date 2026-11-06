@@ -1,8 +1,6 @@
 find_program(AGE_SLANGC_EXECUTABLE
         NAMES slangc
-        HINTS
-        "$ENV{VULKAN_SDK}/bin"
-        "$ENV{VULKAN_SDK}/Bin"
+        HINTS "$ENV{VULKAN_SDK}/bin" "$ENV{VULKAN_SDK}/Bin"
         DOC "Path to the Slang shader compiler"
 )
 
@@ -16,12 +14,10 @@ endif()
 
 message(STATUS "aGE: Using Slang compiler: ${AGE_SLANGC_EXECUTABLE}")
 
-message(STATUS "Slang compiler: ${SLANGC_EXE}")
-
-set(AGE_SHADER_DIR ${CMAKE_SOURCE_DIR}/shaders)
-set(AGE_SHADER_OUT ${CMAKE_BINARY_DIR}/shaders)
+if(NOT AGE_SHADER_DIR OR NOT AGE_SHADER_OUT)
+    message(FATAL_ERROR "AGE_SHADER_DIR / AGE_SHADER_OUT must be set before including VulkanShaders.cmake.")
+endif()
 file(MAKE_DIRECTORY ${AGE_SHADER_OUT})
-
 
 set(AGE_SHADERS "")
 foreach(entry IN ITEMS "triangle:vsMain" "triangle:fsMain") # compiled vertex shader and fragment shader
@@ -31,6 +27,10 @@ foreach(entry IN ITEMS "triangle:vsMain" "triangle:fsMain") # compiled vertex sh
     set(src ${AGE_SHADER_DIR}/${shader_name}.slang)
     set(spv ${AGE_SHADER_OUT}/${shader_name}.${entry_point}.spv)
 
+    if (NOT EXISTS ${src})
+        message(WARNING "aGE: shader missing, skipping: ${src}")
+        continue()
+    endif()
 
     add_custom_command(
             OUTPUT  ${spv}
@@ -49,4 +49,4 @@ foreach(entry IN ITEMS "triangle:vsMain" "triangle:fsMain") # compiled vertex sh
     list(APPEND AGE_SHADERS ${spv})
 endforeach()
 
-add_custom_target(age_shaders ALL DEPENDS ${AGE_SHADERS})
+add_custom_target(age_shaders DEPENDS ${AGE_SHADERS})

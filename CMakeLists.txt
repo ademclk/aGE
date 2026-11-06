@@ -54,7 +54,7 @@ target_link_libraries(age_engine
 age_enable_warnings(age_engine)
 
 # Game sandbox
-if(AGE_BUILD_GAME)
+if(aGE_BUILD_GAME)
     add_executable(age_game
             game/main.cpp
     )
