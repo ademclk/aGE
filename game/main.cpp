@@ -9,60 +9,106 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-#include <cstdio>
+#include <string>
+
+import age.core.log;
+import age.gfx.device;
+import age.gfx.pipeline;
+import age.gfx.renderer;
+
+namespace {
+// passed in as a compile definition so main.cpp never hardcodes a path.
+constexpr auto kShaderBinDir = AGE_SHADER_BIN_DIR;
+
+std::string shader_path(const char* name) { return std::string{kShaderBinDir} + "/" + name; }
 
 struct App {
     SDL_Window* window = nullptr;
+    age::Device device;
+    age::Pipeline pipeline;
+    age::Renderer renderer;
+    bool ready = false;
 };
 
-SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
+}  // namespace
+
+SDL_AppResult SDL_AppInit(void** appstate, int, char**) {
     auto* app = new App{};
     *appstate = app;
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_Log("SDL_Init failed: %s\n", SDL_GetError());
+        age::log_error("SDL_Init failed: {}", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
-    const SDL_PropertiesID props = SDL_CreateProperties();
-    SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, "aGE SDL TEST");
-    SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, 1280);
-    SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, 960);
-    SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_VULKAN_BOOLEAN, true);
-    SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+    app->window = SDL_CreateWindow("aGE - v0.1.0", 1280, 720, SDL_WINDOW_RESIZABLE);
 
-    app->window = SDL_CreateWindowWithProperties(props);
-    SDL_DestroyProperties(props);
-
-    if (!app->window) {
-        SDL_Log("SDL_CreateWindow failed: %s\n", SDL_GetError());
+    if (app->window == nullptr) {
+        age::log_error("SDL_CreateWindow failed: {}", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
-    int pw = 0, ph = 0;
-    SDL_GetWindowSizeInPixels(app->window, &pw, &ph);
-    std::printf("Window created with size: %dx%d\n", pw, ph);
+    int pixel_w = 0;
+    int pixel_h = 0;
+    SDL_GetWindowSizeInPixels(app->window, &pixel_w, &pixel_h);
+    age::log_info("window created: {}x{} pixels", pixel_w, pixel_h);
+
+    if (!app->device.init(app->window)) {
+        return SDL_APP_FAILURE;
+    }
+    if (!app->pipeline.init(app->device, shader_path("triangle.vsMain"), shader_path("triangle.fsMain"))) {
+        return SDL_APP_FAILURE;
+    }
+    if (!app->renderer.init(app->device, app->pipeline)) {
+        return SDL_APP_FAILURE;
+    }
+
+    app->ready = true;
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
-    if (event->type == SDL_EVENT_QUIT)
+    (void)appstate;
+    if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;
-    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE)
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE) {
         return SDL_APP_SUCCESS;
+    }
     return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate(void* appstate) {
-    SDL_Delay(16);
+    auto* app = static_cast<App*>(appstate);
+    if (!app->ready) {
+        return SDL_APP_CONTINUE;
+    }
+
+    switch (app->renderer.draw_frame()) {
+        case age::FrameResult::ok:
+        case age::FrameResult::skipped:
+            break;
+        case age::FrameResult::lost:
+            age::log_error("device lost; exiting");
+            return SDL_APP_FAILURE;
+    }
     return SDL_APP_CONTINUE;
 }
 
-void SDL_AppQuit(void* appstate, SDL_AppResult result) {
+void SDL_AppQuit(void* appstate, SDL_AppResult) {
     auto* app = static_cast<App*>(appstate);
-    if (app) {
-        SDL_DestroyWindow(app->window);
+
+    if (app != nullptr) {
+        // Destroy dependent resources before their parents,
+        // the reverse order of initialization.
+        app->renderer.shutdown();
+        app->pipeline.shutdown();
+        app->device.shutdown();
+        if (app->window != nullptr) {
+            SDL_DestroyWindow(app->window);
+        }
         delete app;
     }
+
     SDL_Quit();
 }

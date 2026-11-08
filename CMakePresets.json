@@ -13,7 +13,8 @@
       "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "AGE_BUILD_GAME": "ON"
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++",
+        "aGE_BUILD_GAME": "ON"
       }
     },
     {
@@ -23,7 +24,8 @@
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "AGE_BUILD_GAME": "ON"
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++",
+        "aGE_BUILD_GAME": "ON"
       }
     }
   ],

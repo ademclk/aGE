@@ -1,10 +1,5 @@
 include(FetchContent)
 
-# Vulkan
-find_package(Vulkan REQUIRED)
-
-message(STATUS "aGE: Vulkan ${Vulkan_VERSION}")
-
 # SDL3
 find_package(SDL3 3.2 CONFIG QUIET)
 
